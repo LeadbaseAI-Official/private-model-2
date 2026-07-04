@@ -22,6 +22,9 @@ class ChatRequest(BaseModel):
     jid: Optional[str] = None
     image_base64: Optional[str] = None
 
+class ClearRequest(BaseModel):
+    jid: Optional[str] = None
+
 # Global handle for cloudflared process
 tunnel_process: Optional[subprocess.Popen] = None
 
@@ -347,6 +350,24 @@ async def chat(req: ChatRequest) -> dict:
         "response": response_text,
         "prompt": req.prompt
     }
+
+@app.post("/v1/chat/clear")
+async def clear_chat_state(req: ClearRequest) -> dict:
+    try:
+        from model import STATES_DIR
+        if req.jid:
+            state_file = STATES_DIR / f"{req.jid}.state"
+            if state_file.exists():
+                state_file.unlink()
+                print(f"[Model] Cleared conversation history cache for JID: {req.jid}", flush=True)
+        else:
+            for path in STATES_DIR.glob("*.state"):
+                if path.name != "global_prefix.state":
+                    path.unlink()
+            print("[Model] Cleared all JID conversation history caches", flush=True)
+        return {"success": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=False, access_log=False)
