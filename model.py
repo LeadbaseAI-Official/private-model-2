@@ -94,6 +94,14 @@ async def run_model_query(prompt: str, jid: Optional[str] = None, image_base64: 
                     if not image_base64.startswith("data:image"):
                         image_base64 = f"data:image/jpeg;base64,{image_base64}"
                     
+                    # Apply logit_bias to ban <|channel>thought token generation
+                    logit_bias = {}
+                    try:
+                        thought_token_id = llm.tokenize(b"<|channel>thought")[-1]
+                        logit_bias[thought_token_id] = -100.0
+                    except Exception:
+                        pass
+
                     response_generator = llm.create_chat_completion(
                         messages=[
                             {
@@ -105,7 +113,8 @@ async def run_model_query(prompt: str, jid: Optional[str] = None, image_base64: 
                             }
                         ],
                         max_tokens=512,
-                        stream=True
+                        stream=True,
+                        logit_bias=logit_bias
                     )
                     text_chunks = []
                     print("[Model Vision] Generating: ", end="", flush=True)
@@ -201,11 +210,19 @@ async def run_model_query(prompt: str, jid: Optional[str] = None, image_base64: 
                         llm.reset()
                         print(f"[Model] Cache miss/fresh start for JID: {jid}. Prompt must be evaluated from scratch.", flush=True)
                     
-                    print(f"[Model] Evaluating context & generating response...", flush=True)
+                    # Apply logit_bias to ban <|channel>thought token generation
+                    logit_bias = {}
+                    try:
+                        thought_token_id = llm.tokenize(b"<|channel>thought")[-1]
+                        logit_bias[thought_token_id] = -100.0
+                    except Exception:
+                        pass
+
                     response_generator = llm(
                         formatted_prompt,
                         max_tokens=512,
-                        stream=True
+                        stream=True,
+                        logit_bias=logit_bias
                     )
                     
                     text_result_chunks = []
