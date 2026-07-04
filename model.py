@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any
 from llama_cpp import Llama, GGML_TYPE_Q8_0
 from chat_template import format_chat_prompt
 
-MODEL_CODE = "2bm"
+MODEL_CODE = "private-model"
 
 _llm_instance: Optional[Llama] = None
 _states: Dict[str, Any] = {}
