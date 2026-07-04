@@ -102,9 +102,18 @@ def update_github_dns(pat: str, org: str, public_url: str, repo_name: str) -> No
                 sha = ""
                 print("config.json not found in dns repo. Creating a fresh registry.", flush=True)
 
+            # Resolve the sub-dictionary key prefix from repo_name dynamically
+            # e.g. "private-model-1" -> "private-model", "2bm-1" -> "2bm"
+            import re
+            match = re.match(r"^(.*?)-\d+$", repo_name)
+            if match:
+                model_code_to_write = match.group(1)
+            else:
+                model_code_to_write = MODEL_CODE
+
             # Set key under the specific model code sub-dictionary
-            if MODEL_CODE not in config_data:
-                config_data[MODEL_CODE] = {}
+            if model_code_to_write not in config_data:
+                config_data[model_code_to_write] = {}
             
             # Keep config_data dict clean: remove old flat key if it exists
             if repo_name in config_data:
@@ -112,10 +121,10 @@ def update_github_dns(pat: str, org: str, public_url: str, repo_name: str) -> No
                 
             # Remove key from other categories dynamically to prevent cross-contamination
             for key in list(config_data.keys()):
-                if key != MODEL_CODE and isinstance(config_data[key], dict) and repo_name in config_data[key]:
+                if key != model_code_to_write and isinstance(config_data[key], dict) and repo_name in config_data[key]:
                     del config_data[key][repo_name]
                 
-            config_data[MODEL_CODE][repo_name] = public_url
+            config_data[model_code_to_write][repo_name] = public_url
             updated_json: str = json.dumps(config_data, indent=2)
             
             if sha:
